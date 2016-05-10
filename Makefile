@@ -32,7 +32,7 @@ SRC_DIRS := $(shell find * -type d -exec bash -c "find {} -maxdepth 1 \
 LIB_BUILD_DIR := $(BUILD_DIR)/lib
 STATIC_NAME := $(LIB_BUILD_DIR)/lib$(PROJECT).a
 DYNAMIC_NAME := $(LIB_BUILD_DIR)/lib$(PROJECT).so
-
+#MATLAB_DIR := /usr/local/MATLAB/R2014b
 ##############################
 # Get all source files
 ##############################
@@ -323,7 +323,8 @@ else
 	ifeq ($(LINUX), 1)
 		ifeq ($(BLAS), atlas)
 			# Linux simply has cblas and atlas
-			LIBRARIES += cblas atlas
+			# LIBRARIES += satlas tatlas
+                        LIBRARIES += cblas atlas
 		endif
 	else ifeq ($(OSX), 1)
 		# OS X packages atlas as the vecLib framework

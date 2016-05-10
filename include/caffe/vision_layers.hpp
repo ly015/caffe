@@ -557,6 +557,237 @@ class SPPLayer : public Layer<Dtype> {
   shared_ptr<ConcatLayer<Dtype> > concat_layer_;
 };
 
+/* FeatureKNN Layer
+  Input: 1. feature of each poselet
+         2. person_info([image_id, person_id]) of each poselet
+  Output: 1. feature of each person
+          2. knn-feature of each person
+*/
+template <typename Dtype>
+class FeatureKNNLayer : public Layer<Dtype> {
+public:
+  explicit FeatureKNNLayer(const LayerParameter& param)
+    : Layer<Dtype>(param) {}
+  virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
+    const vector<Blob<Dtype>*>& top);
+  virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
+    const vector<Blob<Dtype>*>& top);
+
+  virtual inline const char* type() const { return "FeatureKNN"; }
+
+  virtual inline int MinBottomBlobs() const { return 2; }
+  virtual inline int MaxBottomBlobs() const { return 2; }
+  virtual inline int MinTopBlobs() const { return 2; }
+  virtual inline int MaxTopBlobs() const { return 2; }
+
+protected:
+  virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+    const vector<Blob<Dtype>*>& top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+    const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
+
+  void GetImageInfo(const vector<Blob<Dtype>*>& bottom);
+  void SearchKNN_cpu(const Dtype* image_data, int num_people, int num_scale, int dim,
+    int k, Dtype threshold, vector<vector<int> >& knn_list, Blob<Dtype>& buffer);
+  void ReshapeOnTheFly(const vector<Blob<Dtype>*>& bottom,
+    const vector<Blob<Dtype>*>& top);
+
+  Dtype threshold_; // Threshold of KNN search
+  int num_scale_; // The number of pyramid scale
+  int num_people_; // The number of people
+  int dim_; // feature dim
+  int num_image_;
+  int K_;
+  vector<int> people_num_in_image_; // The number of people in each input image.
+  vector<int> diffmap_top0_to_bottom_; // the i-th feature in top[0] is diffmap[i]-th feature in bottom[0]
+  vector<int> diffmap_top1_to_bottom_; // the i-th feature in top[1] is diffmap[i]-th feature in bottom[0]
+  Blob<Dtype> buffer_;
+  bool show_debug_info_;
+};
+
+
+/**
+ 
+ */
+template <typename Dtype>
+class KNNPoolingLayer : public Layer<Dtype> {
+ public:
+  explicit KNNPoolingLayer(const LayerParameter& param)
+      : Layer<Dtype>(param) {}
+  virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
+  virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
+
+  virtual inline const char* type() const { return "KNNPooling"; }
+  virtual inline int ExactNumBottomBlobs() const { return 1; }
+  virtual inline int MinTopBlobs() const { return 1; }
+  // MAX POOL layers can output an extra top blob for the mask;
+  // others can only output the pooled inputs.
+  virtual inline int MaxTopBlobs() const { return 1; }
+
+ protected:
+  virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
+
+  // Set num_, dim_, pool_mask_ according to input
+  void GetInfo(const vector<Blob<Dtype>*>& bottom);
+
+  int num_;
+  int K_;
+  int dim_;
+  Blob<int> pool_mask_; // store the element index of imput which has been output
+  bool show_debug_info_;
+};
+
+/* FeatureKNN Layer
+  Input: 1. feature of each poselet
+         2. person_info([image_id, person_id]) of each poselet
+  Output: 1. feature of each person
+          2. knn-feature of each person
+*/
+template <typename Dtype>
+class PoseletKNNLayer : public Layer<Dtype> {
+public:
+  explicit PoseletKNNLayer(const LayerParameter& param)
+    : Layer<Dtype>(param) {}
+  virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
+    const vector<Blob<Dtype>*>& top);
+  virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
+    const vector<Blob<Dtype>*>& top);
+
+  virtual inline const char* type() const { return "PoseletKNNLayer"; }
+  virtual inline int MinTopBlobs() const {return 1;}
+  virtual inline int ExactNumBottomBlobs() const {return 4;}
+  // num_poselet = num_people * num_peoselet_per_person
+  // num_selected_poselet = num_people * num_selected_poselet_per_person(dim_score)
+  // bottom[0]: score(num_poselet * num_scale, dim_score) for poselet selection
+  // bottom[1]: feature_map(num_poselet * num_scale, dim_featuremap) for knn search
+  // bottom[2]: feature(num_poselet * num_scale, dim_feature) for gradiant backfoward
+  // bottom[3]: poselet_info(num_poselet, 4) [person_id, poselet_id, poselet_type, poselet_score]
+  // top[0]: feature_org(num_selected_poselet, dim_featuremap)
+  // top[1]: feature_knn(num_selected_poselet * K, featuremap)
+
+protected:
+  virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+    const vector<Blob<Dtype>*>& top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+    const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
+  virtual void Search_ORG_Poselet(const vector<Blob<Dtype>*>& bottom); // use score to search poselet_org
+  virtual void Search_KNN_Poselet(const vector<Blob<Dtype>*>& bottom); // search knn of poselet_org
+  // void SearchKNN_cpu(const Dtype* image_data, int num_people, int num_scale, int dim,
+  //   int k, Dtype threshold, vector<vector<int> >& knn_list, Blob<Dtype>& buffer);
+
+  Dtype threshold_; // Threshold of KNN search
+  int num_scale_; // The number of pyramid scale
+  int num_people_; // The number of people
+  int num_ppp_; // The number of poselet per person
+  int num_psp_; // The number of selected poselet per person
+  int K_;
+  int dim_feature_;
+  int dim_score_;
+  int dim_featureMap_;
+  vector<int> diffmap_org_to_bottom_; // the i-th feature in top[0] is diffmap[i]-th feature in bottom[0]
+  vector<int> diffmap_knn_to_bottom_; // the i-th feature in top[1] is diffmap[i]-th feature in bottom[0]
+  bool show_debug_info_;
+  bool if_search_knn_; // if top.size >= 1, search knn
+};
+
+template <typename Dtype>
+class PoseletKNN2Layer : public Layer<Dtype> {
+public:
+  explicit PoseletKNN2Layer(const LayerParameter& param)
+    : Layer<Dtype>(param) {}
+  virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
+    const vector<Blob<Dtype>*>& top);
+  virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
+    const vector<Blob<Dtype>*>& top);
+
+  virtual inline const char* type() const { return "PoseletKNNLayer"; }
+  virtual inline int MinTopBlobs() const {return 1;}
+  virtual inline int ExactNumBottomBlobs() const {return 4;}
+  // num_poselet = num_people * num_peoselet_per_person
+  // num_selected_poselet = num_people * num_selected_poselet_per_person(dim_score)
+  // bottom[0]: score(num_poselet * num_scale, dim_score) for poselet selection
+  // bottom[1]: feature_map(num_poselet * num_scale, dim_featuremap) for knn search
+  // bottom[2]: feature(num_poselet * num_scale, dim_feature) for gradiant backfoward
+  // bottom[3]: poselet_info(num_poselet, 4) [person_id, poselet_id, poselet_type, poselet_score]
+  // top[0]: feature_org(num_selected_poselet, dim_featuremap)
+  // top[1]: feature_knn(num_selected_poselet * K, featuremap)
+
+protected:
+  virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+    const vector<Blob<Dtype>*>& top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+    const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
+  virtual void Search_ORG_Poselet(const vector<Blob<Dtype>*>& bottom); // use score to search poselet_org
+  virtual void Search_KNN_Poselet(const vector<Blob<Dtype>*>& bottom); // search knn of poselet_org
+  // void SearchKNN_cpu(const Dtype* image_data, int num_people, int num_scale, int dim,
+  //   int k, Dtype threshold, vector<vector<int> >& knn_list, Blob<Dtype>& buffer);
+
+  Dtype threshold_; // Threshold of KNN search
+  int num_scale_; // The number of pyramid scale
+  int num_people_; // The number of people
+  int num_ppp_; // The number of poselet per person
+  int num_psp_; // The number of selected poselet per person
+  int K_;
+  int dim_feature_;
+  int dim_score_;
+  int dim_featureMap_;
+  vector<int> diffmap_org_to_bottom_; // the i-th feature in top[0] is diffmap[i]-th feature in bottom[0]
+  vector<int> diffmap_knn_to_bottom_; // the i-th feature in top[1] is diffmap[i]-th feature in bottom[0]
+  bool show_debug_info_;
+  bool if_search_knn_; // if top.size >= 1, search knn
+};
+
+template <typename Dtype>
+class ScoreWeightedAverageLayer: public Layer<Dtype> {
+public:
+  explicit ScoreWeightedAverageLayer(const LayerParameter& param)
+      : Layer<Dtype>(param){}
+  virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
+  virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
+  virtual inline const char* type() const {return "ScoreWeightedAverage";}
+  virtual inline int MinBottomBlobs() const {return 2;}
+  virtual inline int ExactNumTopBlobs() const {return 1;}
+protected:
+  virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom, 
+    const vector<Blob<Dtype>*>& top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+    const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
+
+  int num_input_;
+  int num_score_; // score number of each sample
+};
+
+template <typename Dtype>
+class ProbeLayer: public Layer<Dtype> {
+public:
+  explicit ProbeLayer(const LayerParameter& param)
+      : Layer<Dtype>(param){}
+  virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
+  virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
+  virtual inline const char* type() const {return "Probe";}
+protected:
+  virtual int ExactNumTopBlobs() const {return -1;}
+  virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom, 
+    const vector<Blob<Dtype>*>& top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
+    for (int i = 0; i < propagate_down.size(); ++i) {
+      if (propagate_down[i]) { NOT_IMPLEMENTED; }
+    }
+  }
+};
+
+
+
 }  // namespace caffe
 
 #endif  // CAFFE_VISION_LAYERS_HPP_

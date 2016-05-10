@@ -1,0 +1,52 @@
+opts:
+      cache_name: 'faster_rcnn_VOC2007_ZF_stage1_rpn'
+            conf: [1x1 struct]
+            imdb: [1x1 struct]
+    net_def_file: '/home/ynli/Desktop/MetricLearning/Code/FasterRCNN/faster_rcnn/models/rpn_prototxts/ZF/test.prototxt'
+        net_file: '/home/ynli/Desktop/MetricLearning/Code/FasterRCNN/faster_rcnn/output/rpn_cachedir/faster_rcnn_VOC2007_ZF_stage1_rpn/voc_2007_trainval/...'
+          suffix: ''
+
+conf:
+                      batch_size: 256
+                    bg_thresh_hi: 0.3000
+                    bg_thresh_lo: 0
+                       bg_weight: 1
+         drop_boxes_runoff_image: 1
+                     feat_stride: 16
+                     fg_fraction: 0.5000
+                       fg_thresh: 0.7000
+                     image_means: [224x224x3 single]
+                   ims_per_batch: 1
+                        max_size: 1000
+                        rng_seed: 6
+                          scales: 600
+                  target_only_gt: 1
+                     test_binary: 0
+    test_drop_boxes_runoff_image: 0
+                   test_max_size: 1000
+               test_min_box_size: 16
+                        test_nms: 0.3000
+                     test_scales: 600
+                     use_flipped: 1
+                         use_gpu: 1
+                         anchors: [9x4 double]
+                output_width_map: [901x1 containers.Map]
+               output_height_map: [901x1 containers.Map]
+
+experiments: test (voc_2007_trainval) 1/10022 {Error: <a href="matlab: opentoline('/home/ynli/Desktop/MetricLearning/Code/FasterRCNN/faster_rcnn/imdb/imdb_from_voc.m',80,8)">File: imdb_from_voc.m Line: 80 Column: 8
+</a>Expression or statement is incomplete or incorrect.
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('proposal_test', '/home/ynli/Desktop/MetricLearning/Code/FasterRCNN/faster_rcnn/functions/rpn/proposal_test.m', 78)" style="font-weight:bold">proposal_test</a> (<a href="matlab: opentoline('/home/ynli/Desktop/MetricLearning/Code/FasterRCNN/faster_rcnn/functions/rpn/proposal_test.m',78,0)">line 78</a>)
+            im = imread(imdb.image_at(i));
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('Faster_RCNN_Train.do_proposal_test', '/home/ynli/Desktop/MetricLearning/Code/FasterRCNN/faster_rcnn/experiments/+Faster_RCNN_Train/do_proposal_test.m', 2)" style="font-weight:bold">Faster_RCNN_Train.do_proposal_test</a> (<a href="matlab: opentoline('/home/ynli/Desktop/MetricLearning/Code/FasterRCNN/faster_rcnn/experiments/+Faster_RCNN_Train/do_proposal_test.m',2,0)">line 2</a>)
+    aboxes                      = proposal_test(conf, imdb, ...
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('script_faster_rcnn_VOC2007_ZF>@(x,y)Faster_RCNN_Train.do_proposal_test(conf_proposal,model.stage1_rpn,x,y)', '/home/ynli/Desktop/MetricLearning/Code/FasterRCNN/faster_rcnn/experiments/script_faster_rcnn_VOC2007_ZF.m', 48)" style="font-weight:bold">script_faster_rcnn_VOC2007_ZF>@(x,y)Faster_RCNN_Train.do_proposal_test(conf_proposal,model.stage1_rpn,x,y)</a> (<a href="matlab: opentoline('/home/ynli/Desktop/MetricLearning/Code/FasterRCNN/faster_rcnn/experiments/script_faster_rcnn_VOC2007_ZF.m',48,0)">line 48</a>)
+dataset.roidb_train        	= cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage1_rpn, x, y), dataset.imdb_train,
+dataset.roidb_train, 'UniformOutput', false);
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('script_faster_rcnn_VOC2007_ZF', '/home/ynli/Desktop/MetricLearning/Code/FasterRCNN/faster_rcnn/experiments/script_faster_rcnn_VOC2007_ZF.m', 48)" style="font-weight:bold">script_faster_rcnn_VOC2007_ZF</a> (<a href="matlab: opentoline('/home/ynli/Desktop/MetricLearning/Code/FasterRCNN/faster_rcnn/experiments/script_faster_rcnn_VOC2007_ZF.m',48,0)">line 48</a>)
+dataset.roidb_train        	= cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage1_rpn, x, y), dataset.imdb_train,
+dataset.roidb_train, 'UniformOutput', false);
+} 

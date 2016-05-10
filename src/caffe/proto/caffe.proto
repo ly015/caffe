@@ -352,6 +352,65 @@ message LayerParameter {
   optional TanHParameter tanh_param = 127;
   optional ThresholdParameter threshold_param = 128;
   optional WindowDataParameter window_data_param = 129;
+  optional FeatureKNNParameter feature_knn_param = 138;
+  optional KNNPoolingParameter knn_pooling_param = 139;
+  optional PoseletKNNParameter poselet_knn_param = 140;
+  optional UnfoldLayerParameter unfold_label_param = 141;
+}
+// Message that stores parameters for UnfoldLabelLayer
+message UnfoldLayerParameter {
+  optional uint32 num_label = 1 [default = 1];
+}
+// Message that stores parameters for PoseletKNNLayer
+message PoseletKNNParameter {
+  // the threshold of knn searching. neighboor with a distance larger than knn_threshold
+  // will not be selected.
+  optional uint32 k_neighbor_num = 1 [default = 1];
+  optional float knn_threshold = 2 [default = 0];
+  optional bool show_debug_info = 3 [default = false];
+  optional string debug_info = 4;
+  enum OutputMode {
+    OUTPUT_FEATURE = 0;
+    OUTPUT_SCORE = 1;
+  }
+  optional OutputMode output_mode = 5 [default = OUTPUT_FEATURE];
+
+  optional uint32 poselet_num_per_person = 6 [default = 1];
+  // use poselet score in selection
+  optional bool poselet_weight = 7 [default = false];
+  optional uint32 num_select_poselet = 8 [default = 0];
+  // enum KNNFilter {
+  //   WEEK = 0; // filter same person_id in standard scale
+  //   MID = 1; // WEEK + same poselet in all scale
+  //   STRONG = 2; // MID + same person_id in all scale
+  // }
+  optional uint32 knn_filter_level = 9 [default = 1];
+}
+// Message that stores parameters for KNNPoolingLayer
+message KNNPoolingParameter {
+  enum KNNPoolMethod {
+    MAX = 0;
+    AVE = 1;
+  }
+  optional KNNPoolMethod pool_method = 1 [default = MAX];
+  optional uint32 k_neighbor_num = 2 [default = 1];
+  enum KNNPoolOrder {
+    SAMPLE_PRIORITY = 0; // p1_1, p1_2, ..., p1_k, p2_1, ...
+    K_PRIORITY = 1; // p1_1, p2_1, ..., pn_1, p1_2, p2_2,... pn_k
+  }
+  optional KNNPoolOrder pool_order = 3 [default = SAMPLE_PRIORITY];
+  optional bool show_debug_info = 4 [default = false];
+}
+
+
+// Message that stores parameters for FeatureKNNLayer
+message FeatureKNNParameter {
+  // the threshold of knn searching. neighboor with a distance larger than knn_threshold
+  // will not be selected.
+  optional uint32 k_neighbor_num = 1 [default = 1];
+  optional float knn_threshold = 2 [default = 0];
+  optional bool show_debug_info = 3 [default = false];
+  optional string debug_info = 4;
 }
 
 // Message that stores parameters used to apply transformation

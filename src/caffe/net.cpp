@@ -579,9 +579,12 @@ void Net<Dtype>::BackwardFromTo(int start, int end) {
   CHECK_LT(start, layers_.size());
   for (int i = start; i >= end; --i) {
     if (layer_need_backward_[i]) {
+      // printf("%s_backward...", layers_[i]->layer_param().name().c_str());
       layers_[i]->Backward(
           top_vecs_[i], bottom_need_backward_[i], bottom_vecs_[i]);
+      // printf("done!\n");
       if (debug_info_) { BackwardDebugInfo(i); }
+
     }
   }
 }
