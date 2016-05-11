@@ -660,7 +660,7 @@ public:
 
   virtual inline const char* type() const { return "PoseletKNNLayer"; }
   virtual inline int MinTopBlobs() const {return 1;}
-  virtual inline int ExactNumBottomBlobs() const {return 4;}
+  virtual inline int MinBottomBlobs() const {return 4;}
   // num_poselet = num_people * num_peoselet_per_person
   // num_selected_poselet = num_people * num_selected_poselet_per_person(dim_score)
   // bottom[0]: score(num_poselet * num_scale, dim_score) for poselet selection
@@ -693,6 +693,7 @@ protected:
   vector<int> diffmap_knn_to_bottom_; // the i-th feature in top[1] is diffmap[i]-th feature in bottom[0]
   bool show_debug_info_;
   bool if_search_knn_; // if top.size >= 1, search knn
+  int poselet_select_mode_;
 };
 
 template <typename Dtype>

@@ -385,6 +385,9 @@ message PoseletKNNParameter {
   //   STRONG = 2; // MID + same person_id in all scale
   // }
   optional uint32 knn_filter_level = 9 [default = 1];
+  optional uint32 poselet_select_mode = 10 [default = 0];
+  // 0 - max(score)
+  // 1 - max(score * label)
 }
 // Message that stores parameters for KNNPoolingLayer
 message KNNPoolingParameter {

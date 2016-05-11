@@ -32,6 +32,7 @@ namespace caffe {
 		K_ = this->layer_param_.poselet_knn_param().k_neighbor_num();
 		num_ppp_ = this->layer_param_.poselet_knn_param().poselet_num_per_person();
 		if_search_knn_ = (top.size() > 1)? true:false;
+		poselet_select_mode_  = this->layer_param_.poselet_knn_param().poselet_select_mode();
 		if(if_search_knn_)
 			CHECK_GT(K_, 0);
 	}
@@ -226,6 +227,7 @@ namespace caffe {
 		const Dtype* score = bottom[0]->cpu_data();
 		int max_idx, curr_idx;
 		// CHECK_EQ(num_psp_, dim_score_) << "Only support num_psp_ == dim_score_";
+
 		if(this->layer_param_.poselet_knn_param().poselet_weight()) {
 			vector<Dtype> weight(bottom[3]->num());
 			for(int i = 0; i < bottom[3]->num(); i ++)
@@ -244,18 +246,46 @@ namespace caffe {
 				}
 			}
 		} else {
-			for(int i = 0; i < num_people_; i ++) {
-				for(int j = 0; j < num_psp_; j ++) {
-					max_idx = i * num_ppp_;
-					for(int p = 1; p < num_ppp_; p ++) {
-						curr_idx = i * num_ppp_ + p;
-						if(score[curr_idx * dim_score_ + j] > score[max_idx * dim_score_ + j]) {
-							max_idx = curr_idx;
+			if(poselet_select_mode_ == 0) { // select the max score
+				for(int i = 0; i < num_people_; i ++) {
+					for(int j = 0; j < num_psp_; j ++) {
+						max_idx = i * num_ppp_;
+						for(int p = 1; p < num_ppp_; p ++) {
+							curr_idx = i * num_ppp_ + p;
+							if(score[curr_idx * dim_score_ + j] > score[max_idx * dim_score_ + j]) {
+								max_idx = curr_idx;
+							}
 						}
+						diffmap_org_to_bottom_[i * num_psp_ + j] = max_idx;
 					}
-					diffmap_org_to_bottom_[i * num_psp_ + j] = max_idx;
+				}	
+			} else {
+				// select max socre for pos_sample and min socre for neg_sample
+				CHECK_GE(bottom.size(), 5);
+				CHECK_EQ(bottom[4]->num(), num_people_);
+				const Dtype* label_data = bottom[4]->cpu_data();
+				for(int i = 0; i < num_people_; i ++) {
+					for(int j = 0; j < num_psp_; j ++) {
+						max_idx = i * num_ppp_;
+						if(label_data[i * dim_score_ + j] > 0.5) {
+							for(int p = 1; p < num_ppp_; p ++) {
+								curr_idx = i * num_ppp_ + p;
+								if(score[curr_idx * dim_score_ + j] > score[max_idx * dim_score_ + j]) {
+									max_idx = curr_idx;
+								}
+							}							
+						} else {
+							for(int p = 1; p < num_ppp_; p ++) {
+								curr_idx = i * num_ppp_ + p;
+								if(score[curr_idx * dim_score_ + j] < score[max_idx * dim_score_ + j]) {
+									max_idx = curr_idx;
+								}
+							}							
+						}
+						diffmap_org_to_bottom_[i * num_psp_ + j] = max_idx;
+					}
 				}
-			}			
+			}		
 		}
 	}
 
