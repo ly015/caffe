@@ -620,7 +620,7 @@ class KNNPoolingLayer : public Layer<Dtype> {
       const vector<Blob<Dtype>*>& top);
 
   virtual inline const char* type() const { return "KNNPooling"; }
-  virtual inline int ExactNumBottomBlobs() const { return 1; }
+  virtual inline int MinBottomBlobs() const { return 1; }
   virtual inline int MinTopBlobs() const { return 1; }
   // MAX POOL layers can output an extra top blob for the mask;
   // others can only output the pooled inputs.

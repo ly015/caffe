@@ -20,8 +20,6 @@ void KNNPoolingLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     CHECK_GT(K_, 0) << "K of KNN should be greater than 0";
     show_debug_info_ = this->layer_param_.knn_pooling_param().show_debug_info();
     GetInfo(bottom);
-    
-
 }
 
 template <typename Dtype>
@@ -43,9 +41,10 @@ void KNNPoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       CHECK_EQ(bottom[0]->count(), top[0]->count());
       caffe_copy(bottom[0]->count(), bottom[0]->cpu_data(), top[0]->mutable_cpu_data());
     } else {
+      int idx_top, idx_bottom;
+      const Dtype* label_data;
       switch(this->layer_param_.knn_pooling_param().pool_method()) {
-      case KNNPoolingParameter_KNNPoolMethod_MAX:
-          int idx_top, idx_bottom;
+      case KNNPoolingParameter_KNNPoolMethod_MAX:    
           if(this->layer_param_.knn_pooling_param().pool_order() == KNNPoolingParameter_KNNPoolOrder_SAMPLE_PRIORITY) {
             for(int i = 0; i < num_; i++) {
               for(int j = 0; j < dim_; j++) {
@@ -77,6 +76,61 @@ void KNNPoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
               }        
             }
           }
+          break;
+      case KNNPoolingParameter_KNNPoolMethod_MAXMIN:
+          CHECK_GE(bottom.size(), 2);
+          CHECK_EQ(num_, bottom[1]->num());
+          label_data = bottom[1]->cpu_data();
+          if(this->layer_param_.knn_pooling_param().pool_order() == KNNPoolingParameter_KNNPoolOrder_SAMPLE_PRIORITY) {
+            for(int i = 0; i < num_; i++) {
+              for(int j = 0; j < dim_; j++) {
+                idx_top = i * dim_ + j;
+                idx_bottom = (i * K_) * dim_ + j; // SAMPLE_PRIORITY
+                if(label_data[i * dim_ + j] > 0.5) {
+                  for(int i_knn = 1; i_knn < K_; i_knn++) {
+                    if(bottom[0]->cpu_data()[(i * K_ + i_knn) * dim_ + j] > // SAMPLE_PRIORITY
+                      bottom[0]->cpu_data()[idx_bottom]) {
+                      idx_bottom = (i * K_ + i_knn) * dim_ + j;
+                    }
+                  }
+                } else {
+                  for(int i_knn = 1; i_knn < K_; i_knn++) {
+                    if(bottom[0]->cpu_data()[(i * K_ + i_knn) * dim_ + j] < // SAMPLE_PRIORITY
+                      bottom[0]->cpu_data()[idx_bottom]) {
+                      idx_bottom = (i * K_ + i_knn) * dim_ + j;
+                    }                    
+                  }
+                }
+                top[0]->mutable_cpu_data()[idx_top] = bottom[0]->cpu_data()[idx_bottom];
+                pool_mask_.mutable_cpu_data()[idx_top] = idx_bottom;
+              }
+            }
+          } else {
+            for(int i = 0; i < num_; i++) {
+              for(int j = 0; j < dim_; j++) {
+                idx_top = i * dim_ + j;
+                idx_bottom = i * dim_ + j; // K_PRIORITY
+                if(label_data[i * dim_ + j] > 0.5) {
+                  for(int i_knn = 1; i_knn < K_; i_knn++) {
+                    if(bottom[0]->cpu_data()[(i_knn * num_ + i) * dim_ + j] > // K_PRIORITY
+                      bottom[0]->cpu_data()[idx_bottom]) {
+                      idx_bottom = (i * K_ + i_knn) * dim_ + j;
+                    }
+                  }
+                } else {
+                  for(int i_knn = 1; i_knn < K_; i_knn++) {
+                    if(bottom[0]->cpu_data()[(i_knn * num_ + i) * dim_ + j] < // K_PRIORITY
+                      bottom[0]->cpu_data()[idx_bottom]) {
+                      idx_bottom = (i * K_ + i_knn) * dim_ + j;
+                    }
+                  }                  
+                }
+                top[0]->mutable_cpu_data()[idx_top] = bottom[0]->cpu_data()[idx_bottom];
+                pool_mask_.mutable_cpu_data()[idx_top] = idx_bottom;
+              }        
+            }
+          }          
+
           break;
       case KNNPoolingParameter_KNNPoolMethod_AVE:
           // LOG(INFO) << "AVE KNNPooling to be added!";
@@ -118,6 +172,7 @@ void KNNPoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     } else {
       switch(this->layer_param_.knn_pooling_param().pool_method()) {
       case KNNPoolingParameter_KNNPoolMethod_MAX:
+      case KNNPoolingParameter_KNNPoolMethod_MAXMIN:
           caffe_set(bottom[0]->count(), Dtype(0), bottom[0]->mutable_cpu_diff());
           for(int i = 0; i < top[0]->count(); i ++) {
             bottom[0]->mutable_cpu_diff()[pool_mask_.cpu_data()[i]] = top[0]->cpu_diff()[i];

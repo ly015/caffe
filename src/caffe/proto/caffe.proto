@@ -394,6 +394,7 @@ message KNNPoolingParameter {
   enum KNNPoolMethod {
     MAX = 0;
     AVE = 1;
+    MAXMIN = 2;
   }
   optional KNNPoolMethod pool_method = 1 [default = MAX];
   optional uint32 k_neighbor_num = 2 [default = 1];
